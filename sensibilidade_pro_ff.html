@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensibilidade Pro FF</title>
+  <style>
+    * {margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif;}
+    body {background-color:#121212; color:#fff; line-height:1.5;}
+    header {background-color:#ff3d00; padding:20px; text-align:center; font-size:24px; font-weight:bold;}
+    main {padding:20px; max-width:1000px; margin:auto;}
+    label {display:block; margin-top:15px;}
+    select, input, button {padding:10px; margin-top:5px; width:100%; max-width:400px; font-size:16px; border-radius:5px; border:none;}
+    button {background-color:#ff3d00; color:#fff; cursor:pointer;}
+    button:hover {opacity:0.9;}
+    .result {margin-top:25px; padding:15px; background-color:#1e1e1e; border-radius:8px; display:none;}
+    table {width:100%; border-collapse:collapse; margin-top:15px;}
+    th, td {border:1px solid #444; padding:8px; text-align:center;}
+    th {background-color:#333;}
+    canvas {margin-top:20px; background-color:#1e1e1e; border-radius:8px; display:block; margin-left:auto; margin-right:auto;}
+    /* MOBILE-FIRST RESPONSIVO */
+    @media(max-width:600px){
+      table, thead, tbody, th, td, tr {display:block;}
+      th {text-align:left; background:#222; padding-left:10px;}
+      td {padding-left:10px; border:none; border-bottom:1px solid #444;}
+    }
+  </style>
+</head>
+<body>
+
+<header>Sensibilidade Pro FF</header>
+
+<main>
+  <label for="celular">Digite seu celular:</label>
+  <input type="text" id="searchCell" placeholder="Ex: Galaxy A14">
+
+  <label for="estilo">Escolha seu estilo de jogador:</label>
+  <select id="estilo">
+    <option value="">--Selecione--</option>
+    <option value="rushador">Rushador</option>
+    <option value="sniper">Sniper</option>
+    <option value="granadeiro">Granadeiro</option>
+    <option value="fullgas">Full Gas</option>
+  </select>
+
+  <button id="gerar">Gerar Sensibilidade & Desempenho</button>
+  <button id="comparar" style="margin-top:10px;">Comparar Celulares</button>
+
+  <div class="result" id="result">
+    <h2>Resultado</h2>
+    <p id="infoCelular"></p>
+
+    <h3>Faixa de Sensibilidade</h3>
+    <table id="tabelaSensi">
+      <thead>
+        <tr>
+          <th>Estilo</th>
+          <th>Geral</th>
+          <th>Red Dot</th>
+          <th>2x</th>
+          <th>4x</th>
+          <th>AWM</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Gráfico de Desempenho Estimado</h3>
+    <canvas id="grafico" width="600" height="300"></canvas>
+
+    <h3>Otimizações sugeridas</h3>
+    <ul id="otimizacoes"></ul>
+  </div>
+
+  <div id="comparacao" style="display:none; margin-top:30px;">
+    <h2>Comparação de Celulares</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Celular</th>
+          <th>FPS</th>
+          <th>DPI</th>
+          <th>Hz</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaComparacao"></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Base de celulares de Samsung, iPhone e Xiaomi
+  const celulares = [
+    {nome:"Samsung Galaxy J7", dpi:240, hz:60, fps:30},
+    {nome:"Samsung Galaxy J7 Prime", dpi:300, hz:60, fps:45},
+    {nome:"Samsung Galaxy A01", dpi:295, hz:60, fps:50},
+    {nome:"Samsung Galaxy A10", dpi:295, hz:60, fps:55},
+    {nome:"Samsung Galaxy A20", dpi:400, hz:60, fps:60},
+    {nome:"Samsung Galaxy A30", dpi:410, hz:60, fps:65},
+    {nome:"Samsung Galaxy A50", dpi:411, hz:90, fps:75},
+    {nome:"Samsung Galaxy A51", dpi:420, hz:90, fps:80},
+    {nome:"Samsung Galaxy A52", dpi:432, hz:90, fps:90},
+    {nome:"Samsung Galaxy A72", dpi:450, hz:90, fps:95},
+    {nome:"Samsung Galaxy S6", dpi:441, hz:60, fps:60},
+    {nome:"Samsung Galaxy S7", dpi:577, hz:60, fps:60},
+    {nome:"Samsung Galaxy S8", dpi:570, hz:60, fps:60},
+    {nome:"Samsung Galaxy S9", dpi:570, hz:60, fps:60},
+    {nome:"Samsung Galaxy S10", dpi:550, hz:60, fps:60},
+    {nome:"Samsung Galaxy S20", dpi:563, hz:120, fps:90},
+    {nome:"Samsung Galaxy S21", dpi:421, hz:120, fps:120},
+    {nome:"Samsung Galaxy Z Fold 3", dpi:370, hz:120, fps:110},
+    {nome:"Samsung Galaxy Z Flip 4", dpi:370, hz:120, fps:110},
+    {nome:"iPhone 8", dpi:460, hz:60, fps:60},
+    {nome:"iPhone 8 Plus", dpi:467, hz:60, fps:60},
+    {nome:"iPhone X", dpi:458, hz:60, fps:60},
+    {nome:"iPhone XS", dpi:458, hz:60, fps:60},
+    {nome:"iPhone XS Max", dpi:458, hz:60, fps:60},
+    {nome:"iPhone XR", dpi:460, hz:60, fps:60},
+    {nome:"iPhone 11", dpi:460, hz:60, fps:60},
+    {nome:"iPhone 12", dpi:460, hz:60, fps:60},
+    {nome:"iPhone 13", dpi:460, hz:60, fps:60},
+    {nome:"iPhone 14", dpi:460, hz:60, fps:60},
+    {nome:"Redmi Note 7", dpi:395, hz:60, fps:50},
+    {nome:"Redmi Note 8", dpi:409, hz:60, fps:60},
+    {nome:"Redmi Note 9", dpi:397, hz:60, fps:70},
+    {nome:"Redmi Note 10", dpi:409, hz:60, fps:80},
+    {nome:"Redmi Note 11", dpi:420, hz:90, fps:90},
+    {nome:"Redmi Note 12", dpi:395, hz:120, fps:100},
+    {nome:"Poco X3", dpi:395, hz:120, fps:100},
+    {nome:"Mi 9", dpi:403, hz:60, fps:70},
+    {nome:"Mi 10", dpi:408, hz:90, fps:90},
+    {nome:"Poco F4", dpi:450, hz:120, fps:120}
+  ];
+
+  const estilos = {
+    rushador: { geral:"90-100", redDot:"80-90", x2:"70-80", x4:"60-70", awm:"50-60" },
+    sniper: { geral:"70-80", redDot:"60-70", x2:"50-60", x4:"40-50", awm:"30-40" },
+    granadeiro: { geral:"80-90", redDot:"70-80", x2:"60-70", x4:"50-60", awm:"40-50" },
+    fullgas: { geral:"85-95", redDot:"75-85", x2:"65-75", x4:"55-65", awm:"45-55" }
+  };
+
+  const otimizacoesComuns = [
+    "Ativar modo desempenho",
+    "Desativar sombra",
+    "Limpar apps em segundo plano",
+    "Ajustar gráficos para médio/baixo conforme necessidade"
+  ];
+
+  let selecionadosComparacao = [];
+
+  function filtrarCelular(nome){
+    const filtro = nome.toLowerCase();
+    return celulares.filter(c => c.nome.toLowerCase().includes(filtro));
+  }
+
+  function mostrarResultado(celular, estilo){
+    document.getElementById("infoCelular").innerText = 
+      `${celular.nome} | DPI: ${celular.dpi} | ${celular.hz}Hz | FPS Estimado: ${celular.fps}`;
+
+    const tbody = document.querySelector("#tabelaSensi tbody");
+    tbody.innerHTML = `<tr>
+      <td>${estilo}</td>
+      <td>${estilos[estilo].geral}</td>
+      <td>${estilos[estilo].redDot}</td>
+      <td>${estilos[estilo].x2}</td>
+      <td>${estilos[estilo].x4}</td>
+      <td>${estilos[estilo].awm}</td>
+    </tr>`;
+
+    const ul = document.getElementById("otimizacoes");
+    ul.innerHTML = "";
+    otimizacoesComuns.forEach(o=>{
+      const li = document.createElement("li");
+      li.textContent = o;
+      ul.appendChild(li);
+    });
+
+    const ctx = document.getElementById('grafico').getContext('2d');
+    if(window.graficoInstance) window.graficoInstance.destroy();
+    window.graficoInstance = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels:['FPS Médio','Estabilidade','Latência'],
+        datasets:[{label:'Desempenho Estimado', data:[celular.fps, Math.floor(celular.fps*0.9), Math.floor(100-celular.dpi/10)],
+        backgroundColor:['#ff3d00','#ffa500','#00ff00']}]
+      },
+      options:{scales:{y:{beginAtZero:true,max:120}}}
+    });
+
+    document.getElementById("result").style.display="block";
+  }
+
+  document.getElementById("gerar").addEventListener("click", ()=>{
+    const nomeBusca = document.getElementById("searchCell").value;
+    const estiloVal = document.getElementById("estilo").value;
+    if(!nomeBusca || !estiloVal){ alert("Digite celular e selecione estilo."); return;}
+    const encontrados = filtrarCelular(nomeBusca);
+    if(encontrados.length === 0){ alert("Celular não encontrado."); return;}
+    mostrarResultado(encontrados[0], estiloVal);
+  });
+
+  // Comparador simples
+  document.getElementById("comparar").addEventListener("click", ()=>{
+    const nomeBusca = document.getElementById("searchCell").value;
+    if(!nomeBusca){ alert("Digite o celular para comparar."); return;}
+    const encontrados = filtrarCelular(nomeBusca);
+    if(encontrados.length === 0){ alert("Celular não encontrado."); return;}
+    selecionadosComparacao.push(encontrados[0]);
+    if(selecionadosComparacao.length > 3) selecionadosComparacao.shift(); // mantém 3 no máximo
+
+    // Exibe os celulares na área de comparação
+    const tabelaComparacao = document.getElementById("tabelaComparacao");
+    tabelaComparacao.innerHTML = ''; // Limpa a tabela
+
+    selecionadosComparacao.forEach(celular => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${celular.nome}</td><td>${celular.fps}</td><td>${celular.dpi}</td><td>${celular.hz}</td>`;
+      tabelaComparacao.appendChild(tr);
+    });
+
+    document.getElementById("comparacao").style.display = "block";  // Exibe a seção de comparação
+  });
+</script>
+
+</body>
+</html>
